@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Notes Hub</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-database-arrow-up"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>BigQuery</h1>
+                    <p>Release Notes Navigator</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div class="cache-info" id="cache-info">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span id="cache-status">Loading feed...</span>
+                </div>
+                <button id="refresh-btn" class="btn btn-primary" title="Force Refresh Release Notes">
+                    <i class="fa-solid fa-arrows-rotate" id="refresh-icon"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Layout -->
+        <main class="app-content">
+            <!-- Left Panel: Feed and Filters -->
+            <section class="feed-section">
+                <!-- Controls and Search -->
+                <div class="feed-controls">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" id="search-input" placeholder="Search release notes (e.g. Gemini, partition, table)..." autocomplete="off">
+                        <button id="clear-search" class="clear-btn" style="display: none;">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <span class="filter-label">Filter by:</span>
+                        <div class="filter-tags" id="filter-tags">
+                            <button class="filter-tag active" data-type="all">All</button>
+                            <button class="filter-tag" data-type="feature"><span class="dot feature"></span>Feature</button>
+                            <button class="filter-tag" data-type="changed"><span class="dot changed"></span>Changed</button>
+                            <button class="filter-tag" data-type="issue"><span class="dot issue"></span>Issue</button>
+                            <button class="filter-tag" data-type="deprecated"><span class="dot deprecated"></span>Deprecated</button>
+                            <button class="filter-tag" data-type="general"><span class="dot general"></span>General</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feed Header with Counter -->
+                <div class="feed-header">
+                    <div class="results-count" id="results-count">Showing 0 updates</div>
+                    <div class="sort-selector">
+                        <i class="fa-solid fa-sort"></i>
+                        <select id="sort-select">
+                            <option value="desc">Newest First</option>
+                            <option value="asc">Oldest First</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Spinner / Loading State -->
+                <div id="loading-state" class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Fetching latest updates from Google Cloud...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="error-state" class="error-state" style="display: none;">
+                    <div class="error-icon">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <h3>Failed to Load Release Notes</h3>
+                    <p id="error-message">Something went wrong while fetching release notes. Please try again.</p>
+                    <button id="retry-btn" class="btn btn-secondary">
+                        <i class="fa-solid fa-arrows-rotate"></i> Retry Fetch
+                    </button>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <div class="empty-icon">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                    <h3>No Updates Found</h3>
+                    <p>No release notes match your search or filter criteria. Try resetting them.</p>
+                    <button id="reset-filters-btn" class="btn btn-secondary">Reset Search & Filters</button>
+                </div>
+
+                <!-- Release Notes Container -->
+                <div id="release-notes-container" class="release-notes-container">
+                    <!-- Cards will be dynamically injected here -->
+                </div>
+            </section>
+
+            <!-- Right Panel: Sidebar & Tweet Composer -->
+            <aside class="sidebar-section">
+                <!-- Stats Widget -->
+                <div class="widget-panel stats-widget">
+                    <h3><i class="fa-solid fa-chart-simple"></i> Feed Summary</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-total">0</div>
+                            <div class="stat-label">Total Notes</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value text-feature" id="stat-features">0</div>
+                            <div class="stat-label">Features</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value text-changed" id="stat-changed">0</div>
+                            <div class="stat-label">Changed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value text-issue" id="stat-issues">0</div>
+                            <div class="stat-label">Issues/Fixes</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tweet Composer Widget -->
+                <div class="widget-panel composer-widget" id="composer-widget">
+                    <div class="composer-header">
+                        <h3><i class="fa-brands fa-x-twitter"></i> Tweet Composer</h3>
+                        <span class="composer-badge" id="composer-selection-badge" style="display: none;">Active Draft</span>
+                    </div>
+                    
+                    <div class="composer-placeholder" id="composer-placeholder">
+                        <div class="composer-placeholder-icon">
+                            <i class="fa-regular fa-paper-plane"></i>
+                        </div>
+                        <p>Select a release note card from the list to load it here and share it on X / Twitter.</p>
+                    </div>
+
+                    <div class="composer-body" id="composer-body" style="display: none;">
+                        <div class="selected-note-preview">
+                            <div class="preview-meta">
+                                <span class="note-type-badge" id="composer-note-type">Feature</span>
+                                <span class="note-date" id="composer-note-date">June 15, 2026</span>
+                            </div>
+                            <p class="preview-text" id="composer-note-text">
+                                Preview of original text...
+                            </p>
+                        </div>
+
+                        <div class="composer-edit-area">
+                            <label for="tweet-textarea">Customize your post:</label>
+                            <textarea id="tweet-textarea" rows="6" maxlength="500" placeholder="Write something about this update..."></textarea>
+                            
+                            <div class="composer-footer">
+                                <div class="char-counter" id="char-counter">
+                                    <span id="char-count">0</span> / 280
+                                </div>
+                                <div class="composer-presets">
+                                    <button class="btn-preset active" id="preset-standard" title="Standard summary layout">Standard</button>
+                                    <button class="btn-preset" id="preset-short" title="Short concise tweet">Concise</button>
+                                    <button class="btn-preset" id="preset-hype" title="Excited/hype announcement">Hype</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="tweet-btn" class="btn btn-tweet">
+                            <i class="fa-brands fa-x-twitter"></i> Post to X (Twitter)
+                        </button>
+                        
+                        <button id="deselect-btn" class="btn btn-text btn-block">
+                            Cancel / Clear Selection
+                        </button>
+                    </div>
+                </div>
+            </aside>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="app-footer-bar">
+            <p>&copy; 2026 BigQuery Release Notes Navigator. Powered by Google Cloud RSS Feed & Flask.</p>
+        </footer>
+    </div>
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
